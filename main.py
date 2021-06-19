@@ -3,7 +3,7 @@ from math import radians, sin, cos
 from pyspark import SparkContext
 from pyspark.ml.feature import OneHotEncoder
 from pyspark.sql import SQLContext
-from pyspark.sql.types import IntegerType, TimestampType
+from pyspark.sql.types import IntegerType, TimestampType, StringType
 import pyspark.sql.functions as F
 
 JFK_LAT = radians(40.6413)
@@ -32,14 +32,6 @@ def ohe(df, input_cols, output_cols):
     return df_encoded
 
 
-def pre_process(df):
-    df = df.withColumn('lpep_pickup_datetime', df['lpep_pickup_datetime'].cast(TimestampType()))
-    df = df.withColumn('Lpep_dropoff_datetime', df['Lpep_dropoff_datetime'].cast(TimestampType()))
-
-    df.printSchema()
-    return df
-
-
 def distance_airport(df):
     df = df.withColumn("rlat_pickup", F.radians(F.col("Pickup_latitude")))\
         .withColumn("rlon_pickup", F.radians(F.col("Pickup_longitude")))\
@@ -60,6 +52,12 @@ def distance_airport(df):
                     .otherwise(0)
                     )\
         .drop("rlat_pickup", "rlon_pickup", "rlat_dropoff", "rlon_dropoff", "dist_JFK_pickup", "dist_JFK_dropoff")
+    return df
+
+
+def pre_process(df):
+    df = df.withColumn('lpep_pickup_datetime', df['lpep_pickup_datetime'].cast(TimestampType()))
+    df = df.withColumn('Lpep_dropoff_datetime', df['Lpep_dropoff_datetime'].cast(TimestampType()))
     return df
 
 
@@ -88,6 +86,19 @@ def main():
     df_result = distance_airport(df_duration)
     df_result.show()
 
+    df_result.printSchema()
+
+    df_result = df_result.withColumn('hour_pickup_vec', df_result['hour_pickup_vec'].cast(StringType()))\
+        .withColumn('hour_dropoff_vec', df_result['hour_dropoff_vec'].cast(StringType()))\
+        .withColumn('dayofweek_pickup_vec', df_result['dayofweek_pickup_vec'].cast(StringType()))\
+        .withColumn('dayofweek_dropoff_vec', df_result['dayofweek_dropoff_vec'].cast(StringType()))
+
+    csv_file_path = "data/result"
+    parquet_file_path = "data/proto.parquet"
+    df_result.coalesce(1).write.format('com.databricks.spark.csv').save(csv_file_path, header='true')
+
+    df_result = df_result.select(F.col("Trip_type ").alias("trip_type"))
+    df_result.write.parquet(parquet_file_path)
 
 
 if __name__ == '__main__':
