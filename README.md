@@ -1,7 +1,8 @@
-#Environment
-python 3.8
+# Environment
+`python 3.8`
 
-#How to run
+# How to run
+
 ## Install lib
 `pip3 install -r requirements.txt`
 ## Commandline to run
