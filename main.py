@@ -12,6 +12,12 @@ def convert_to_hour(df):
     return df
 
 
+def convert_to_day(df):
+    df = df.withColumn("dayofweek_pickup", F.dayofweek("lpep_pickup_datetime"))
+    df = df.withColumn("dayofweek_dropoff", F.dayofweek("Lpep_dropoff_datetime"))
+    return df
+
+
 def ohe(df, input_cols, output_cols):
     encoder = OneHotEncoder(inputCols=input_cols, outputCols=output_cols)
     model = encoder.fit(df)
@@ -24,11 +30,12 @@ def pre_process(df):
     df = df.withColumn('Lpep_dropoff_datetime', df['Lpep_dropoff_datetime'].cast(TimestampType()))
     df.printSchema()
     df_hour = convert_to_hour(df)
-    df_hour.show()
+    df_day = convert_to_day(df_hour)
+    df_day.show()
 
-    input_cols = ["hour_pickup", "hour_dropoff"]
-    output_cols = ["hour_pickup_vec", "hour_dropoff_vec"]
-    df_encoded = ohe(df_hour, input_cols, output_cols)
+    input_cols = ["hour_pickup", "hour_dropoff", "dayofweek_pickup", "dayofweek_dropoff"]
+    output_cols = ["hour_pickup_vec", "hour_dropoff_vec", "dayofweek_pickup_vec", "dayofweek_dropoff_vec"]
+    df_encoded = ohe(df_day, input_cols, output_cols)
     df_encoded.show()
 
 
